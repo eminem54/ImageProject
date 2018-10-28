@@ -1,96 +1,45 @@
-#include "Utility.h";
+#include "Utility.h"
+#include "ImageConvert.h"
+#include "Scaling.h"
+
 #include <iostream>
 #include <opencv2\opencv.hpp>
 using namespace std;
 using namespace cv;
+#define SIZE 256
 
-void getBitPlane(Mat &srcImg, Mat &dstImg, int n)
-{
-	uchar mask = 0x01 << n;
-	Mat s = Mat(srcImg);
-	Mat d = Mat(dstImg);
 
-	for (int r = 0; r < srcImg.rows; r++)
-	{
-		uchar *p = srcImg.ptr(r);//첫번째행의 값을 가져온다.
-		uchar *dp = dstImg.ptr(r);
-
-		for (int c = 0; c < srcImg.cols; c++)
-		{
-			uchar pixelvalue = p[c];
-			uchar one_zero = pixelvalue & mask;
-			if (one_zero > 0)
-				dp[c] = 255;
-			else
-				dp[c] = 0;
-		}
+unsigned char** createEyeMask(int size) {
+	unsigned char** mask = new unsigned char*[size * 10];
+	for (int i = 0; i < size * 10; i++) {
+		mask[i] = new unsigned char[size * 30];
+		memset(mask[i], 0, sizeof(unsigned char)*size*30);
 	}
+	return mask;
 }
 
+Mat createScaleImage(unsigned char** pixels, int height, int width) {
+	double heightScaleRate = (double)SIZE / height;
+	double widthScaleRate = (double)SIZE / width;
+
+	Mat result2 = Mat(SIZE, SIZE, CV_8UC1);
+
+	for (int h = 0; h < SIZE; h++) {
+		for (int w = 0; w < SIZE; w++) {
+			double h_Ori = h / heightScaleRate;
+			double w_Ori = w / widthScaleRate;
+			result2.at<uchar>(h, w) = BilinearInterpolation(pixels, height, width, h_Ori, w_Ori);
+		}
+	}
+	return result2;
+}
 int main() {
-	const char* inputPath = "face1.bmp";
+	const char* inputPath = "face5.bmp";
 	Mat Ori_Img = imread(inputPath);
-
-	int nHeight_in = Ori_Img.rows;
-	int nWidth_in= Ori_Img.cols;
-
-	char mask = 0x01 << 7;
-	char mask2 = 0x01 << 4;
+	int height = Ori_Img.rows;
+	int width = Ori_Img.cols;
+	Mat gray;
+	cvtColor(Ori_Img, gray, CV_BGR2GRAY);
 	
-	unsigned char** ch_in_R;
-	unsigned char** ch_in_G;
-	unsigned char** ch_in_B;
-
-	if (Ori_Img.channels() == 3) {
-		ch_in_R = allocMem(nHeight_in, nWidth_in, 0);
-		ch_in_G = allocMem(nHeight_in, nWidth_in, 0);
-		ch_in_B = allocMem(nHeight_in, nWidth_in, 0);
-
-		for (int h = 0; h < nHeight_in; h++) {
-			for (int w = 0; w < nWidth_in; w++) {
-				Vec3b RGB = Ori_Img.at<Vec3b>(h, w);
-				ch_in_R[h][w] = (unsigned char)RGB[2];
-				ch_in_G[h][w] = (unsigned char)RGB[1];
-				ch_in_B[h][w] = (unsigned char)RGB[0];
-			}
-		}
-	}
-
-	Mat result = Mat(nHeight_in, nWidth_in, CV_8UC3);
-	for (int h = 0; h < nHeight_in; h++) {
-		uchar *or = ch_in_R[h];
-		uchar *og = ch_in_G[h];
-		uchar *ob = ch_in_B[h];
-
-		uchar *dr = ch_in_B[h];
-		uchar *dg = ch_in_B[h];
-		uchar *db = ch_in_B[h];
-
-
-		for (int w = 0; w < nWidth_in; w++) {
-				uchar pixelR = or[w];
-				uchar pixelG = og[w];
-				uchar pixelB = ob[w];
-
-				uchar afterR = pixelR & mask;
-				uchar afterG = pixelG & mask;
-				uchar afterB = pixelB & mask;
-
-				if (afterR> 0) afterR = 255;
-				else afterR = 0;
-				if (afterG> 0) afterG = 255;
-				else afterG = 0;
-				if (afterB> 0) afterB = 255;
-				else afterB = 0;
-
-				result.at<Vec3b>(h, w) = Vec3b(afterB, ch_in_G[h][w], afterR);
-		}
-	}
-
-	//getBitPlane(Ori_Img, result, 6);
-
-	imshow("hi", result);
-	waitKey(0);
-
 	return 0;
 }
