@@ -1,9 +1,10 @@
 #pragma once
 #include <iostream>
 #include <opencv2\opencv.hpp>
+#include "Scaling.h"
 using namespace cv;
 using namespace std;
-
+#define SIZE 256
 unsigned char** allocMem(int height, int width, int val) {
 	unsigned char** ret = new unsigned char*[height];
 	for (int i = 0; i < height; i++) {
@@ -156,6 +157,34 @@ void copyGrayPixel(Mat img, unsigned char** des) {
 	for (int h = 0; h < height; h++) {
 		for (int w = 0; w < width; w++) {
 			des[h][w] = img.at<uchar>(h, w);
+		}
+	}
+}
+
+
+Mat createScaleImage(unsigned char** pixels, int height, int width) {
+	double heightScaleRate = (double)SIZE / height;
+	double widthScaleRate = (double)SIZE / width;
+
+	Mat result2 = Mat(SIZE, SIZE, CV_8UC1);
+
+	for (int h = 0; h < SIZE; h++) {
+		for (int w = 0; w < SIZE; w++) {
+			double h_Ori = h / heightScaleRate;
+			double w_Ori = w / widthScaleRate;
+			result2.at<uchar>(h, w) = BilinearInterpolation(pixels, height, width, h_Ori, w_Ori);
+		}
+	}
+	return result2;
+}
+
+void getGrayHist(Mat img, int* dst) {
+	int height = img.rows;
+	int width = img.cols;
+
+	for (int h = 0; h < height; h++) {
+		for (int w = 0; w < width; w++) {
+			dst[img.at<uchar>(h, w)]++;
 		}
 	}
 }

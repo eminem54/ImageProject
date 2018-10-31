@@ -1,7 +1,7 @@
 #include "Utility.h"
 #include "ImageConvert.h"
 #include "Scaling.h"
-
+#include <vector>
 #include <iostream>
 #include <opencv2\opencv.hpp>
 using namespace std;
@@ -9,6 +9,54 @@ using namespace cv;
 #define SIZE 256
 //cvtColor(img_ori, img_gray, CV_BGR2GRAY);
 //resize(img_gray, img_resize, Size(256, 256), 0, 0, CV_INTER_LINEAR);
+//GaussianBlur(iimg_ori1, iiimg_ori1, Size(3, 3), 0, 0);
+
+const char* inputEye1 = "ImageProject\\aeye\\aeye01.bmp";
+const char* inputEye2 = "ImageProject\\aeye\\aeye02.bmp";
+const char* inputEye3 = "ImageProject\\aeye\\aeye03.bmp";
+const char* inputEye4 = "ImageProject\\aeye\\aeye04.bmp";
+const char* inputEye5 = "ImageProject\\aeye\\aeye05.bmp";
+const char* inputEye6 = "ImageProject\\aeye\\aeye06.bmp";
+const char* inputEye7 = "ImageProject\\aeye\\aeye07.bmp";
+const char* inputEye8 = "ImageProject\\aeye\\aeye08.bmp";
+const char* inputEye9 = "ImageProject\\aeye\\aeye09.bmp";
+const char* inputEye10 = "ImageProject\\aeye\\aeye10.bmp";
+const char* inputEye11= "ImageProject\\aeye\\aeye11.bmp";
+const char* inputEye12 = "ImageProject\\aeye\\aeye12.bmp";
+const char* inputEye13 = "ImageProject\\aeye\\aeye13.bmp";
+const char* inputEye14 = "ImageProject\\aeye\\aeye14.bmp";
+const char* inputEye15 = "ImageProject\\aeye\\aeye15.bmp";
+const char* inputEye16 = "ImageProject\\aeye\\aeye16.bmp";
+const char* inputEye17 = "ImageProject\\aeye\\aeye17.bmp";
+const char* inputEye18 = "ImageProject\\aeye\\aeye18.bmp";
+const char* inputEye19 = "ImageProject\\aeye\\aeye19.bmp";
+const char* inputEye[19] = { inputEye1,inputEye2,inputEye3,inputEye4,inputEye5,inputEye6,inputEye7,inputEye8,inputEye9,inputEye10,
+inputEye11,inputEye12,inputEye13,inputEye14,inputEye15,inputEye16,inputEye17,inputEye18,inputEye19 };
+
+
+
+
+
+const char* inputPath1 = "face1.bmp";
+const char* inputPath2 = "face2.bmp";
+const char* inputPath3 = "face3.bmp";
+const char* inputPath4 = "face4.bmp";
+const char* inputPath5 = "face5.bmp";
+const char* inputPath6 = "face6.bmp";
+const char* inputPath7 = "face7.bmp";
+const char* inputPath8 = "face8.bmp";
+const char* inputPath9 = "face9.bmp";
+const char* inputPath10 = "aeye10.bmp";
+const char* inputPath11 = "aeye11.bmp";
+const char* inputPath12 = "aeye12.bmp";
+const char* inputPath13 = "aeye13.bmp";
+const char* inputPath14 = "aeye14.bmp";
+const char* inputPath15 = "aeye15.bmp";
+const char* inputPath16 = "aeye16.bmp";
+const char* inputPath17 = "aeye17.bmp";
+const char* inputPath18 = "aeye18.bmp";
+const char* inputarr[18] = { inputPath1,inputPath2, inputPath3, inputPath4, inputPath5, inputPath6, inputPath7, inputPath8, inputPath9, inputPath10,
+inputPath11, inputPath12, inputPath13, inputPath14, inputPath15, inputPath16, inputPath17, inputPath18 };
 
 unsigned char** createEyeMask(int size) {
 	unsigned char** mask = new unsigned char*[size * 10];
@@ -19,34 +67,45 @@ unsigned char** createEyeMask(int size) {
 	return mask;
 }
 
-Mat createScaleImage(unsigned char** pixels, int height, int width) {
-	double heightScaleRate = (double)SIZE / height;
-	double widthScaleRate = (double)SIZE / width;
 
-	Mat result2 = Mat(SIZE, SIZE, CV_8UC1);
-
-	for (int h = 0; h < SIZE; h++) {
-		for (int w = 0; w < SIZE; w++) {
-			double h_Ori = h / heightScaleRate;
-			double w_Ori = w / widthScaleRate;
-			result2.at<uchar>(h, w) = BilinearInterpolation(pixels, height, width, h_Ori, w_Ori);
-		}
-	}
-	return result2;
-}
 int main() {
-	const char* inputPath1 = "aeye19.bmp";
-	const char* inputPath2 = "aeye02.bmp";
-	const char* inputPath3 = "aeye03.bmp";
-	const char* inputPath4 = "aeye04.bmp";
-	const char* inputPath5 = "aeye05.bmp";
-	const char* inputPath6 = "aeye06.bmp";
-	const char* inputPath7 = "aeye07.bmp";
-	const char* inputPath8 = "aeye08.bmp";
-	const char* inputPath9 = "aeye09.bmp";
+	Mat img_ori1 = imread("eye10.bmp");
 
-	Mat img_ori1 = imread(inputPath1);
-	Mat img_ori2 = imread(inputPath2);
+	Mat img_gray;
+	cvtColor(img_ori1, img_gray, CV_BGR2GRAY);
+
+	Mat img_resize;
+	resize(img_gray, img_resize, Size(256, 256), 0, 0, CV_INTER_LINEAR);
+
+
+	Mat temp;
+	Mat img_smooth;
+
+	GaussianBlur(img_resize, temp, Size(3, 3), 0, 0);
+	GaussianBlur(temp, img_smooth, Size(3, 3), 0, 0);
+
+	int hist[256] = { 0 };
+	getGrayHist(img_smooth, hist);
+	printHistogram(hist);
+	DisplayHistogram(hist, "1");
+	imshow("1", img_resize);
+	waitKey(0);
+
+
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+/*	Mat img_ori2 = imread(inputPath2);
 	Mat img_ori3 = imread(inputPath3);
 	Mat img_ori4 = imread(inputPath4);
 	Mat img_ori5 = imread(inputPath5);
@@ -54,7 +113,6 @@ int main() {
 	Mat img_ori7 = imread(inputPath7);
 	Mat img_ori8 = imread(inputPath8);
 	Mat img_ori9 = imread(inputPath9);
-
 
 	Mat iimg_ori1;
 	Mat iimg_ori2;
@@ -133,11 +191,4 @@ int main() {
 	DisplayHistogram(hist6, inputPath6);
 	DisplayHistogram(hist7, inputPath7);
 	DisplayHistogram(hist8, inputPath8);
-	DisplayHistogram(hist9, inputPath9);
-
-
-	waitKey(0);
-
-
-	return 0;
-}
+	DisplayHistogram(hist9, inputPath9);*/
