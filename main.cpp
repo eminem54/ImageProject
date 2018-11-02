@@ -74,7 +74,7 @@ unsigned char** createEyeMask(int size) {
 int gMask[3] = { -1,0,1 };
 
 int main() {
-	Mat img_ori1 = imread("face5.bmp");
+	Mat img_ori1 = imread("face4.bmp");
 
 	Mat img_gray;
 	cvtColor(img_ori1, img_gray, CV_BGR2GRAY);
@@ -93,8 +93,7 @@ int main() {
 	copyGrayPixel(img_resize, pixels);
 	unsigned char** pad = padding(pixels, SIZE, SIZE, 3);
 
-
-	unsigned char** gradHist = allocMem(4096, 9, 0);
+	int count = 0;
 
 	int dx = 0, dy = 0;
 	int angle = 0;
@@ -108,40 +107,48 @@ int main() {
 				if (dx != 0) {
 					angle = (atan(dy / dx) * 180 / M_PI);
 					if (angle < 0) {
-						xgrad[h][w] = (360 + angle) / 40;
+						xgrad[h][w] = (180 + angle) / 20;
 					}
 					else
-						xgrad[h][w] = angle/40;
+						xgrad[h][w] = angle/20;
 				}
-				else
-					xgrad[h][w] = 0;
-			}
-			else
-				xgrad[h][w] = 0;
-		}
-	}
-
-
-	for (int h = 0; h < 64; h++) {
-		for (int w = 0; w < 64; w++) {
-			for (int i = 0; i < 4; i++) {
-				for (int j = 0; j < 4; j++) {
-					gradHist[h*64+w][xgrad[h*4+i][w*4+j]]++;
+				else {
+					xgrad[h][w] = 9;
 				}
 			}
-		}
-	}
-
-
-	for (int i = 22; i < 64; i++) {
-		for (int j = 23; j < 64; j++) {
-			cout << i << "행" << j << "번째블록" << endl;
-			for (int x= 0; x < 9; x++) {
-				cout << (int)gradHist[i * 64+j][x] << endl;
+			else {
+				xgrad[h][w] = 9;
 			}
 		}
 	}
 
+	int cellSize = 4;
+	int cellNum = SIZE / cellSize;
+	unsigned char** cells = allocMem(cellNum*cellNum, 9, 0);
+
+	for (int h = 0; h < cellNum; h++) {
+		for (int w = 0; w < cellNum; w++) {
+			for (int i = 0; i < cellSize; i++) {
+				for (int j = 0; j < cellSize; j++) {
+					if(xgrad[h*cellSize + i][w*cellSize + j] != 9)
+						cells[h*cellNum +w][xgrad[h*cellSize+i][w*cellSize+j]]++;
+				}
+			}
+		}
+	}
+
+	for (int i = 0; i < cellNum; i++) {
+		for (int j = 0; j < cellNum; j++) {
+			cout << i << "행 " << j << "열" << endl;
+			for (int x = 0; x < 9; x++) {
+				if((int)cells[i * cellNum + j][x]>6)
+				cout <<x <<"방향 " << (int)cells[i * cellNum + j][x] << endl;
+			}
+		}
+	}
+	unsigned char** blocks = allocMem(1024, 9, 0);
+
+	
 	waitKey(0);
 
 

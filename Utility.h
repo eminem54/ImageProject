@@ -126,6 +126,7 @@ void DisplayHistogram(int* Hist, const char* name) {
 	waitKey(0);
 }
 
+
 void printHistogram(int* hist) {
 	for (int i = 0; i < 256; i++) {
 		printf("value %d ÀÇ °³¼ö : %d\n", i, hist[i]);
