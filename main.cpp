@@ -3,7 +3,11 @@
 #include "Scaling.h"
 #include <vector>
 #include <iostream>
+#include <stdio.h>
+#define _USE_MATH_DEFINES
+#include <math.h>
 #include <opencv2\opencv.hpp>
+
 using namespace std;
 using namespace cv;
 #define SIZE 256
@@ -21,7 +25,7 @@ const char* inputEye7 = "ImageProject\\aeye\\aeye07.bmp";
 const char* inputEye8 = "ImageProject\\aeye\\aeye08.bmp";
 const char* inputEye9 = "ImageProject\\aeye\\aeye09.bmp";
 const char* inputEye10 = "ImageProject\\aeye\\aeye10.bmp";
-const char* inputEye11= "ImageProject\\aeye\\aeye11.bmp";
+const char* inputEye11 = "ImageProject\\aeye\\aeye11.bmp";
 const char* inputEye12 = "ImageProject\\aeye\\aeye12.bmp";
 const char* inputEye13 = "ImageProject\\aeye\\aeye13.bmp";
 const char* inputEye14 = "ImageProject\\aeye\\aeye14.bmp";
@@ -67,28 +71,77 @@ unsigned char** createEyeMask(int size) {
 	return mask;
 }
 
+int gMask[3] = { -1,0,1 };
 
 int main() {
-	Mat img_ori1 = imread("eye10.bmp");
+	Mat img_ori1 = imread("face5.bmp");
 
 	Mat img_gray;
 	cvtColor(img_ori1, img_gray, CV_BGR2GRAY);
 
 	Mat img_resize;
-	resize(img_gray, img_resize, Size(256, 256), 0, 0, CV_INTER_LINEAR);
+	resize(img_gray, img_resize, Size(SIZE, SIZE), 0, 0, CV_INTER_LINEAR);
 
 
 	Mat temp;
 	Mat img_smooth;
 
-	GaussianBlur(img_resize, temp, Size(3, 3), 0, 0);
-	GaussianBlur(temp, img_smooth, Size(3, 3), 0, 0);
+	//GaussianBlur(img_resize, temp, Size(3, 3), 0, 0);
+	//GaussianBlur(temp, img_smooth, Size(3, 3), 0, 0);
 
-	int hist[256] = { 0 };
-	getGrayHist(img_smooth, hist);
-	printHistogram(hist);
-	DisplayHistogram(hist, "1");
-	imshow("1", img_resize);
+	unsigned char** pixels = allocMem(SIZE, SIZE, 0);
+	copyGrayPixel(img_resize, pixels);
+	unsigned char** pad = padding(pixels, SIZE, SIZE, 3);
+
+
+	unsigned char** gradHist = allocMem(4096, 9, 0);
+
+	int dx = 0, dy = 0;
+	int angle = 0;
+	unsigned char** xgrad = allocMem(SIZE,SIZE,0);
+	for (int h = 0; h < SIZE; h++) {
+		for (int w = 0; w < SIZE; w++) {
+			dx = 0; dy = 0, temp = 0;
+			if (h > 0 && h < SIZE - 1 && w>0 && w < SIZE - 1) {
+				dx = pad[h][w - 1] * gMask[0] + pad[h][w + 1] * gMask[2];
+				dy = pad[h + 1][w] * gMask[0] + pad[h - 1][w] * gMask[2];
+				if (dx != 0) {
+					angle = (atan(dy / dx) * 180 / M_PI);
+					if (angle < 0) {
+						xgrad[h][w] = (360 + angle) / 40;
+					}
+					else
+						xgrad[h][w] = angle/40;
+				}
+				else
+					xgrad[h][w] = 0;
+			}
+			else
+				xgrad[h][w] = 0;
+		}
+	}
+
+
+	for (int h = 0; h < 64; h++) {
+		for (int w = 0; w < 64; w++) {
+			for (int i = 0; i < 4; i++) {
+				for (int j = 0; j < 4; j++) {
+					gradHist[h*64+w][xgrad[h*4+i][w*4+j]]++;
+				}
+			}
+		}
+	}
+
+
+	for (int i = 22; i < 64; i++) {
+		for (int j = 23; j < 64; j++) {
+			cout << i << "행" << j << "번째블록" << endl;
+			for (int x= 0; x < 9; x++) {
+				cout << (int)gradHist[i * 64+j][x] << endl;
+			}
+		}
+	}
+
 	waitKey(0);
 
 

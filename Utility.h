@@ -9,7 +9,7 @@ unsigned char** allocMem(int height, int width, int val) {
 	unsigned char** ret = new unsigned char*[height];
 	for (int i = 0; i < height; i++) {
 		ret[i] = new unsigned char[width];
-		//memset(ret[i], val, sizeof(unsigned char)*width);
+		memset(ret[i], val, sizeof(unsigned char)*width);
 	}
 	return ret;
 }
