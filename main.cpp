@@ -74,7 +74,7 @@ unsigned char** createEyeMask(int size) {
 int gMask[3] = { -1,0,1 };
 
 int main() {
-	Mat img_ori1 = imread("face4.bmp");
+	Mat img_ori1 = imread("face6.bmp");
 
 	Mat img_gray;
 	cvtColor(img_ori1, img_gray, CV_BGR2GRAY);
@@ -136,7 +136,7 @@ int main() {
 			}
 		}
 	}
-
+	int maxIndex = 0;
 	for (int i = 0; i < cellNum; i++) {
 		for (int j = 0; j < cellNum; j++) {
 			cout << i << "За " << j << "ї­" << endl;
