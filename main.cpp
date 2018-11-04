@@ -7,15 +7,186 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 #include <opencv2\opencv.hpp>
-
+#include "Eye.h"
 using namespace std;
 using namespace cv;
 #define SIZE 256
+
 //cvtColor(img_ori, img_gray, CV_BGR2GRAY);
 //resize(img_gray, img_resize, Size(256, 256), 0, 0, CV_INTER_LINEAR);
 //GaussianBlur(iimg_ori1, iiimg_ori1, Size(3, 3), 0, 0);
 
-const char* inputEye1 = "ImageProject\\aeye\\aeye01.bmp";
+
+
+
+unsigned char** createEyeMask(int size) {
+	unsigned char** mask = new unsigned char*[size * 10];
+	for (int i = 0; i < size * 10; i++) {
+		mask[i] = new unsigned char[size * 30];
+		memset(mask[i], 0, sizeof(unsigned char)*size * 30);
+	}
+	return mask;
+}
+
+int gMask[3] = { -1,0,1 };
+
+int main() {
+	Mat img_ori1 = imread("face12.bmp");
+
+	Mat img_gray;
+	cvtColor(img_ori1, img_gray, CV_BGR2GRAY);
+
+	imshow("1", img_gray);
+	waitKey(0);
+
+	Mat img_resize;
+	resize(img_gray, img_resize, Size(SIZE, SIZE), 0, 0, CV_INTER_LINEAR);
+
+
+	//Mat temp;
+	//Mat img_smooth;
+
+	//GaussianBlur(img_resize, temp, Size(3, 3), 0, 0);
+	//GaussianBlur(temp, img_smooth, Size(3, 3), 0, 0);
+
+	unsigned char** pixels = allocMem(SIZE, SIZE, 0);
+	copyGrayPixel(img_resize, pixels);
+	unsigned char** pad = padding(pixels, SIZE, SIZE, 3);
+
+	int count = 0;
+
+	double dx = 0, dy = 0;
+	int angle = 0;
+	unsigned char** gradient = allocMem(SIZE, SIZE, 0);
+
+	for (int h = 0; h < SIZE; h++) {
+		for (int w = 0; w < SIZE; w++) {
+			dx = 0.0; dy = 0.0;
+			if (h > 0 && h < SIZE - 1 && w>0 && w < SIZE - 1) {
+				dx = pad[h][w - 1] * gMask[0] + pad[h][w + 1] * gMask[2];
+				dy = pad[h + 1][w] * gMask[0] + pad[h - 1][w] * gMask[2];
+				if (dx != 0) {
+					angle = (atan((double)dy / dx) * 180.0 / M_PI);
+					if (angle < 0) {
+						gradient[h][w] = (180 + angle) / 45.0;
+					}
+					else
+						gradient[h][w] = angle / 45.0;
+				}
+				else {
+					gradient[h][w] = 4;
+				}
+			}
+			else {
+				gradient[h][w] = 4;
+			}
+		}
+	}
+
+	int cellSize = 4;
+	int cellNum = SIZE / cellSize;
+	unsigned char** cells = allocMem(cellNum*cellNum, 4, 0);
+
+	for (int h = 0; h < cellNum; h++) {
+		for (int w = 0; w < cellNum; w++) {
+			for (int i = 0; i < cellSize; i++) {
+				for (int j = 0; j < cellSize; j++) {
+					if (gradient[h*cellSize + i][w*cellSize + j] != 5)
+						cells[h*cellNum + w][gradient[h*cellSize + i][w*cellSize + j]]++;
+				}
+			}
+		}
+	}
+
+
+	int maxIndex = 0;
+
+
+	//for (int i = 0; i < cellNum; i++) {
+	//	for (int j = 0; j < cellNum; j++) {
+	//		cout << i << "青 " << j << "凯" << endl;
+	//		maxIndex = 0;
+	//		for (int x = 1; x < 4; x++) {
+	//			if (cells[i * cellNum + j][x] > cells[i*cellNum + j][maxIndex]) {
+	//				maxIndex = x;
+	//			}
+	//		}
+	//		cout << maxIndex <<"规氢 " << (int)cells[i*cellNum + j][maxIndex] << endl;
+	//	}
+	//}
+
+	unsigned char** cellOrient = allocMem(cellNum, cellNum, 0);
+
+	for (int i = 0; i < cellNum; i++) {
+		for (int j = 0; j < cellNum; j++) {
+			maxIndex = 0;
+			for (int x = 1; x < 4; x++) {
+				if (cells[i * cellNum + j][x] > cells[i*cellNum + j][maxIndex]) {
+					maxIndex = x;
+				}
+			}
+			if(!(cells[i*cellNum+j][maxIndex]<6))
+				cellOrient[i][j] = maxIndex;
+			else {
+				cellOrient[i][j] = 4;
+			}
+		}
+	}
+
+	int eyesize = 5;
+	int num0 = 0, num1 = 0, num2 = 0, num3 = 0;
+	int secondNum0 = 0, secondNum1 = 0, secondNum2 = 0, secondNum3 = 0;
+
+	Mat copyori = Mat(img_ori1);
+	Mat output;
+	resize(copyori, output, Size(SIZE, SIZE), 0, 0, CV_INTER_LINEAR);
+
+	for (int h = 0; h < cellNum; h++) {
+		for (int w = 0; w < cellNum / 2; w++) {
+
+			num0 = 0, num1 = 0, num2 = 0, num3 = 0;
+			for (int i = 0; i < eyesize; i++) {
+				countCellValue(cellOrient[h][w + i], num0, num1, num2, num3);
+			}
+			if (isEye(num0, num1, num2, num3)) {
+				for (int j = w + eyesize; j < cellNum - eyesize; j++) {
+					secondNum0 = 0, secondNum1 = 0, secondNum2 = 0, secondNum3 = 0;
+
+					for (int k = 0; k < eyesize; k++) {
+						cout << (int)cellOrient[h][j + k] << endl;
+						countCellValue(cellOrient[h][j + k], secondNum0, secondNum1, secondNum2, secondNum3);
+					}
+
+					if (isEye(secondNum0, secondNum1, secondNum2, secondNum3)) { //real eye
+						cout << "please..." << h<<" "<<w<<endl;
+						for (int b = h; b < h + 10; b++) {
+							for (int a = w; a < j; a++) {
+								output.at<Vec3b>(b, a) = Vec3b(0, 0, 255);
+							}
+						}
+						imshow("h", output);
+						waitKey(0);
+						return 0;
+					}
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/*	const char* inputEye1 = "ImageProject\\aeye\\aeye01.bmp";
 const char* inputEye2 = "ImageProject\\aeye\\aeye02.bmp";
 const char* inputEye3 = "ImageProject\\aeye\\aeye03.bmp";
 const char* inputEye4 = "ImageProject\\aeye\\aeye04.bmp";
@@ -36,10 +207,6 @@ const char* inputEye18 = "ImageProject\\aeye\\aeye18.bmp";
 const char* inputEye19 = "ImageProject\\aeye\\aeye19.bmp";
 const char* inputEye[19] = { inputEye1,inputEye2,inputEye3,inputEye4,inputEye5,inputEye6,inputEye7,inputEye8,inputEye9,inputEye10,
 inputEye11,inputEye12,inputEye13,inputEye14,inputEye15,inputEye16,inputEye17,inputEye18,inputEye19 };
-
-
-
-
 
 const char* inputPath1 = "face1.bmp";
 const char* inputPath2 = "face2.bmp";
@@ -62,110 +229,7 @@ const char* inputPath18 = "aeye18.bmp";
 const char* inputarr[18] = { inputPath1,inputPath2, inputPath3, inputPath4, inputPath5, inputPath6, inputPath7, inputPath8, inputPath9, inputPath10,
 inputPath11, inputPath12, inputPath13, inputPath14, inputPath15, inputPath16, inputPath17, inputPath18 };
 
-unsigned char** createEyeMask(int size) {
-	unsigned char** mask = new unsigned char*[size * 10];
-	for (int i = 0; i < size * 10; i++) {
-		mask[i] = new unsigned char[size * 30];
-		memset(mask[i], 0, sizeof(unsigned char)*size * 30);
-	}
-	return mask;
-}
-
-int gMask[3] = { -1,0,1 };
-
-int main() {
-	Mat img_ori1 = imread("face6.bmp");
-
-	Mat img_gray;
-	cvtColor(img_ori1, img_gray, CV_BGR2GRAY);
-
-	Mat img_resize;
-	resize(img_gray, img_resize, Size(SIZE, SIZE), 0, 0, CV_INTER_LINEAR);
-
-
-	Mat temp;
-	Mat img_smooth;
-
-	//GaussianBlur(img_resize, temp, Size(3, 3), 0, 0);
-	//GaussianBlur(temp, img_smooth, Size(3, 3), 0, 0);
-
-	unsigned char** pixels = allocMem(SIZE, SIZE, 0);
-	copyGrayPixel(img_resize, pixels);
-	unsigned char** pad = padding(pixels, SIZE, SIZE, 3);
-
-	int count = 0;
-
-	int dx = 0, dy = 0;
-	int angle = 0;
-	unsigned char** xgrad = allocMem(SIZE,SIZE,0);
-	for (int h = 0; h < SIZE; h++) {
-		for (int w = 0; w < SIZE; w++) {
-			dx = 0; dy = 0, temp = 0;
-			if (h > 0 && h < SIZE - 1 && w>0 && w < SIZE - 1) {
-				dx = pad[h][w - 1] * gMask[0] + pad[h][w + 1] * gMask[2];
-				dy = pad[h + 1][w] * gMask[0] + pad[h - 1][w] * gMask[2];
-				if (dx != 0) {
-					angle = (atan(dy / dx) * 180 / M_PI);
-					if (angle < 0) {
-						xgrad[h][w] = (180 + angle) / 20;
-					}
-					else
-						xgrad[h][w] = angle/20;
-				}
-				else {
-					xgrad[h][w] = 9;
-				}
-			}
-			else {
-				xgrad[h][w] = 9;
-			}
-		}
-	}
-
-	int cellSize = 4;
-	int cellNum = SIZE / cellSize;
-	unsigned char** cells = allocMem(cellNum*cellNum, 9, 0);
-
-	for (int h = 0; h < cellNum; h++) {
-		for (int w = 0; w < cellNum; w++) {
-			for (int i = 0; i < cellSize; i++) {
-				for (int j = 0; j < cellSize; j++) {
-					if(xgrad[h*cellSize + i][w*cellSize + j] != 9)
-						cells[h*cellNum +w][xgrad[h*cellSize+i][w*cellSize+j]]++;
-				}
-			}
-		}
-	}
-	int maxIndex = 0;
-	for (int i = 0; i < cellNum; i++) {
-		for (int j = 0; j < cellNum; j++) {
-			cout << i << "青 " << j << "凯" << endl;
-			for (int x = 0; x < 9; x++) {
-				if((int)cells[i * cellNum + j][x]>6)
-				cout <<x <<"规氢 " << (int)cells[i * cellNum + j][x] << endl;
-			}
-		}
-	}
-	unsigned char** blocks = allocMem(1024, 9, 0);
-
-	
-	waitKey(0);
-
-
-	return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-/*	Mat img_ori2 = imread(inputPath2);
+	Mat img_ori2 = imread(inputPath2);
 	Mat img_ori3 = imread(inputPath3);
 	Mat img_ori4 = imread(inputPath4);
 	Mat img_ori5 = imread(inputPath5);
