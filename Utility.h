@@ -189,3 +189,12 @@ void getGrayHist(Mat img, int* dst) {
 		}
 	}
 }
+
+unsigned char** createEyeMask(int size) {
+	unsigned char** mask = new unsigned char*[size * 10];
+	for (int i = 0; i < size * 10; i++) {
+		mask[i] = new unsigned char[size * 30];
+		memset(mask[i], 0, sizeof(unsigned char)*size * 30);
+	}
+	return mask;
+}
